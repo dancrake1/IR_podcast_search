@@ -1,10 +1,18 @@
 import pandas as pd
 import utils as ut
+import os
 from flask import Flask, render_template, request, jsonify, json, url_for, abort, redirect, session,flash
-import requests
+import pyterrier as pt
+os.environ["JAVA_HOME"] = "/Library/Java/JavaVirtualMachines/jdk-20.jdk/Contents/Home"
 
-index = pd.read_csv('BM25_data.csv')
-data = pd.read_csv('/Users/danielcrake/Desktop/Masters/Year 2/Information Retrieval /Assignment/metadata.tsv', sep = '\t')
+#pyterrier configs
+if not pt.started():
+    pt.init()
+
+
+# index = pd.read_csv('BM25_data.csv')
+# data = pd.read_csv('/Users/danielcrake/Desktop/Masters/Year 2/Information Retrieval /Assignment/metadata.tsv', sep = '\t')
+data = pd.read_pickle('/Users/danielcrake/Desktop/Masters/Year 2/Information Retrieval /Assignment/metadata.pkl')
 
 app = Flask(__name__, template_folder='templates')
 app.config['SECRET_KEY'] = '{Your Secret Key}'
@@ -14,15 +22,25 @@ app.config['SECRET_KEY'] = '{Your Secret Key}'
 @app.route("/", methods=["POST", "GET"])
 def login():
 
-    columns = ['show_name', 'show_description', 'publisher']
+    columns = ['show_name', 'episode_name', 'episode_description']
     if request.method == 'POST':
         query = request.form['query'].strip()
         processed_query = ut.pre_process(query)
-        query_words = processed_query.split(' ')
-        top_results = index[query_words].sum(axis = 1).sort_values(ascending = False).index[:5].tolist()
-        outputs = data.loc[top_results, columns]
 
+        #indexed data
+        index_ref = pt.IndexRef.of('./pd_index')
+        searcher = pt.BatchRetrieve(index_ref, wmodel='DFReeKLIM')
+        results = searcher.search(processed_query)
+
+        docno_list = results.loc[:4, 'docid'].to_list()
+        outputs = data.loc[data['docno'].isin(docno_list), columns]
         outputs = outputs.to_dict()
+
+        # query_words = processed_query.split(' ')
+        # top_results = index[query_words].sum(axis = 1).sort_values(ascending = False).index[:5].tolist()
+        # outputs = data.loc[top_results, columns]
+        # outputs = outputs.to_dict()
+
         session['outputs'] = outputs
         session['processed_query'] = processed_query
 
@@ -39,14 +57,14 @@ def results():
     processed_query = session.pop('processed_query', None)
 
     show = outputs['show_name'].to_list()
-    description = outputs['show_description'].to_list()
-    publisher = outputs['publisher'].to_list()
+    description = outputs['episode_description'].to_list()
+    episode = outputs['episode_name'].to_list()
 
     return render_template("quey_result.html",
                            query = processed_query,
                            show = show,
                            description = description,
-                           publisher = publisher)
+                           episode = episode)
 
     
 if __name__ == '__main__':

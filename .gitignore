@@ -6,3 +6,5 @@
 /WebPage/templates/test.html
 /WebPage/BM25_data.csv
 /.idea/
+/archive/
+/venv/

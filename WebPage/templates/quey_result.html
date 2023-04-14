@@ -63,14 +63,14 @@
 	<table border = 3>
 	<tr>
 		<th> Show  </th>
-		<th> Description </th>
-        <th> Publisher </th>
+		<th> Episode </th>
+        <th> Description </th>
 	</tr>
       {% for x in range(5) %}
         <tr>
                 <td> {{show[x]}}  </td>
+                <td> {{episode[x]}} </td>
                 <td> {{description[x]}} </td>
-                <td> {{publisher[x]}} </td>
 
 	</tr>
     {% endfor %}
